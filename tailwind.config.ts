@@ -69,12 +69,22 @@ const config: Config = {
           '0%': { borderRadius: '60% 40% 30% 70%/60% 30% 70% 40%' },
           '50%': { borderRadius: '30% 60% 70% 40%/50% 60% 30% 60%' },
           '100%': { borderRadius: '60% 40% 30% 70%/60% 30% 70% 40%' }
-        }
+        },
+        'scale': {
+          '0%': { transform: 'scale(1)' },
+          '100%': { transform: 'scale(1.1)' }
+        },
+        shine: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' }
+        },
       },
       animation: {
         "fade-in": "fade-in 0.5s ease-out",
         "slide-up": "slide-up 0.5s ease-out forwards",
-        'morph': 'morph 8s ease-in-out infinite'
+        'morph': 'morph 8s ease-in-out infinite',
+        'slide-up-delayed': 'slide-up 0.5s ease-out forwards var(--delay)',
+        shine: 'shine 2s linear infinite',
       },
       backgroundImage: {
         'grid-white': `
@@ -83,6 +93,12 @@ const config: Config = {
         `,
         'radial-gradient': 'radial-gradient(circle at center, var(--tw-gradient-stops))',
       },
+      variables: {
+        '--primary-rgb': '0, 0, 0',
+        '.dark': {
+          '--primary-rgb': '255, 255, 255'
+        }
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],
