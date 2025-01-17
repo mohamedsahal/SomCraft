@@ -93,13 +93,13 @@ export function Hero() {
                       {!showResult ? (
                         <div className="flex flex-col font-mono">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-sm text-primary/80 tracking-tight font-medium">
+                            <span className="text-sm" style={{ color: getCodeColor(codeText) }}>
                               {codeText}
                             </span>
                             <span className="animate-blink text-sm">|</span>
                           </div>
                           <div className="flex items-baseline gap-1 h-6">
-                            <span className="text-xs text-muted-foreground/80">
+                            <span className="text-xs text-[#6A9955]">
                               {taglineText}
                             </span>
                             {codeText.length === fullCodeText.length && (
@@ -222,4 +222,16 @@ export function Hero() {
       </div>
     </section>
   )
+}
+
+function getCodeColor(line: string): string {
+  // VS Code-like syntax highlighting
+  if (line.trim().startsWith('//')) return '#6A9955' // Comments
+  if (line.includes('className=')) return '#9CDCFE' // Attributes
+  if (line.includes('MessageCircleCode')) return '#4EC9B0' // Component names
+  if (line.includes('div')) return '#569CD6' // HTML elements
+  if (line.includes('flex')) return '#CE9178' // Tailwind classes
+  if (line.match(/[{}[\]()]/)) return '#D4D4D4' // Brackets
+  if (line.includes('"')) return '#CE9178' // String literals
+  return '#D4D4D4' // Default text color
 } 

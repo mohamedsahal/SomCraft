@@ -1,4 +1,5 @@
 "use client"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,65 +8,128 @@ import Link from "next/link"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { useState, useEffect } from "react"
 
+const codeSnippet = `// Welcome to SomaliCraft Academy
+import { Auth } from '@somalicraft/core';
+
+interface UserCredentials {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+class AuthService {
+  private static instance: AuthService;
+  private auth: Auth;
+
+  private constructor() {
+    this.auth = new Auth({
+      apiKey: process.env.API_KEY,
+      domain: 'api.somalicraft.com'
+    });
+  }
+
+  static getInstance(): AuthService {
+    if (!AuthService.instance) {
+      AuthService.instance = new AuthService();
+    }
+    return AuthService.instance;
+  }
+
+  async login({ email, password, rememberMe }: UserCredentials) {
+    console.log('🔐 Authenticating user...');
+    try {
+      const user = await this.auth.signIn({
+        email,
+        password,
+        options: { remember: rememberMe }
+      });
+      
+      console.log('✨ Login successful!');
+      return user;
+    } catch (error) {
+      console.error('❌ Authentication failed');
+      throw error;
+    }
+  }
+}
+
+// Initialize auth service
+const authService = AuthService.getInstance();
+await authService.login({
+  email: 'user@example.com',
+  password: '********',
+  rememberMe: true
+});`.split('\n')
+
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [codeLines, setCodeLines] = useState<string[]>([])
-  const code = `// Welcome to SomaliCraft
-const learnCoding = async () => {
-  const skills = [
-    "Web Development",
-    "Mobile Apps",
-    "UI/UX Design",
-    "Backend Systems"
-  ];
-
-  for (const skill of skills) {
-    await master(skill);
-    console.log("Mastered: " + skill);
-  }
-
-  return "Success! 🚀";
-};
-
-// Start your journey
-learnCoding().then((result) => {
-  console.log(result);
-});`.split('\n')
+  const [currentLine, setCurrentLine] = useState(0)
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (codeLines.length < code.length) {
-        setCodeLines(prev => [...prev, code[prev.length]])
-      } else {
-        clearInterval(timer)
-      }
-    }, 100)
-
-    return () => clearInterval(timer)
-  }, [codeLines.length])
+    if (currentLine < codeSnippet.length) {
+      const timer = setTimeout(() => {
+        setCodeLines(prev => [...prev, codeSnippet[currentLine]])
+        setCurrentLine(prev => prev + 1)
+      }, 50) // Faster typing speed
+      return () => clearTimeout(timer)
+    }
+  }, [currentLine])
 
   return (
     <div className="container relative flex h-screen w-screen flex-col lg:flex-row items-center justify-center gap-8">
-      {/* Left side - Coding Animation */}
-      <div className="hidden lg:flex w-1/2 h-full items-center justify-center bg-black/5 backdrop-blur-sm">
-        <div className="relative w-full max-w-3xl p-8 rounded-xl bg-background/40">
-          <pre className="text-base font-mono text-primary/90 overflow-hidden">
-            {codeLines.map((line, i) => (
-              <div
-                key={i}
-                className="code-line"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                {line}
+      {/* Code Animation Background */}
+      <div className="hidden lg:block absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
+        <pre className="absolute inset-0 p-4 text-sm font-mono overflow-hidden opacity-10">
+          {codeLines.map((line, i) => (
+            <div
+              key={i}
+              className="code-line"
+              style={{ 
+                animationDelay: `${i * 50}ms`,
+                color: getCodeColor(line)
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </pre>
+      </div>
+
+      {/* Code Animation Display */}
+      <div className="hidden lg:flex w-1/2 h-full items-center justify-center z-10">
+        <div className="relative w-full max-w-3xl p-8">
+          <div className="rounded-xl border bg-background/40 backdrop-blur-md shadow-xl">
+            <div className="flex items-center gap-2 px-4 py-3 border-b bg-background/50">
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
               </div>
-            ))}
-            <div className="animate-cursor inline-block" />
-          </pre>
+              <div className="text-sm text-muted-foreground">auth.ts</div>
+            </div>
+            <pre className="p-4 text-sm font-mono overflow-x-auto">
+              {codeLines.map((line, i) => (
+                <div
+                  key={i}
+                  className="code-line"
+                  style={{ 
+                    animationDelay: `${i * 50}ms`,
+                    color: getCodeColor(line)
+                  }}
+                >
+                  {line}
+                </div>
+              ))}
+              <div className="animate-cursor inline-block" />
+            </pre>
+          </div>
         </div>
       </div>
 
-      {/* Right side - Sign In Form */}
-      <div className="w-full lg:w-1/2 flex justify-center items-center p-4">
+      {/* Sign In Form */}
+      <div className="w-full lg:w-1/2 flex justify-center items-center p-4 z-10">
         <div className="w-full max-w-[450px]">
           <div className="rounded-xl border bg-background/60 backdrop-blur-sm shadow-sm p-8">
             <div className="flex flex-col space-y-2 text-center mb-8">
@@ -142,4 +206,24 @@ learnCoding().then((result) => {
       </div>
     </div>
   )
+}
+
+function getCodeColor(line: string): string {
+  // VS Code-like syntax highlighting
+  if (line.trim().startsWith('//')) return '#6A9955' // Comments
+  if (line.includes('class ')) return '#569CD6' // Class keyword
+  if (line.includes('interface ')) return '#569CD6' // Interface keyword
+  if (line.includes('async ')) return '#569CD6' // Async keyword
+  if (line.includes('private ')) return '#569CD6' // Private keyword
+  if (line.includes('constructor')) return '#DCDCAA' // Constructor
+  if (line.includes('console.log')) return '#DCDCAA' // Function calls
+  if (line.match(/'[^']*'/)) return '#CE9178' // String literals
+  if (line.match(/\b\d+\b/)) return '#B5CEA8' // Numbers
+  if (line.includes('import ')) return '#C586C0' // Import statements
+  if (line.includes('return ')) return '#C586C0' // Return statements
+  if (line.includes('await ')) return '#C586C0' // Await keyword
+  if (line.match(/\b(true|false|null|undefined)\b/)) return '#569CD6' // Constants
+  if (line.match(/[{}[\]()]/)) return '#D4D4D4' // Brackets
+  if (line.includes(':')) return '#9CDCFE' // Type annotations
+  return '#D4D4D4' // Default text color
 } 

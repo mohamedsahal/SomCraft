@@ -36,16 +36,16 @@ const contactInfo = [
   {
     icon: <Mail className="h-5 w-5" />,
     text: "contact@example.com",
-    href: "mailto:contact@example.com"
+    href: "mailto:info@somalicraft.com"
   },
   {
     icon: <Phone className="h-5 w-5" />,
-    text: "+1 (555) 123-4567",
-    href: "tel:+15551234567"
+    text: "+252 90 7366124",
+    href: "tel:+252907366124"
   },
   {
     icon: <MapPin className="h-5 w-5" />,
-    text: "123 Tech Street, San Francisco, CA",
+    text: "Somalia",
     href: "https://maps.google.com"
   }
 ]

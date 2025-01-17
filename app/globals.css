@@ -135,12 +135,20 @@
 
   .code-line {
     opacity: 0;
-    animation: fadeIn 0.1s ease-in forwards;
+    animation: codeFadeIn 0.3s ease-in-out forwards;
+    white-space: pre;
+    height: 1.5em;
+    line-height: 1.5em;
   }
 
   .animate-cursor {
-    border-right: 2px solid;
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background-color: hsl(var(--primary));
+    margin-left: 1px;
     animation: cursor 1s infinite;
+    vertical-align: middle;
   }
 }
 
@@ -199,17 +207,17 @@
 }
 
 @keyframes cursor {
-  from, to { border-color: transparent }
-  50% { border-color: hsl(var(--primary)); }
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
-@keyframes fadeIn {
+@keyframes codeFadeIn {
   from {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateX(-10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
