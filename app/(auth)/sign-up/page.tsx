@@ -1,18 +1,17 @@
 "use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { Mail, Lock, Eye, EyeOff, User, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { CountrySelect } from "@/components/ui/country-select"
+import { useSupabase } from "@/hooks/use-supabase"
+import { supabase } from "@/lib/supabase/client"
 import Link from "next/link"
-import { Mail, Lock, Eye, EyeOff, User, Phone, Users } from "lucide-react"
-import { useState, useEffect } from "react"
 
 const codeSnippet = `// Welcome to SomaliCraft Academy
 import { Developer } from '@somalicraft/core';
@@ -61,230 +60,391 @@ class WebDeveloper extends Developer {
 
 // Start your coding journey
 const you = new WebDeveloper('${name}');
-you.buildProject('My First Website');`.split('\n')
+you.buildProject('My First Website');`
 
 export default function SignUpPage() {
+  const router = useRouter()
+  const { signUp, verifyOtp } = useSupabase()
+  const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [countryCode, setCountryCode] = useState("+252")
-  const [codeLines, setCodeLines] = useState<string[]>([])
   const [currentLine, setCurrentLine] = useState(0)
+  const [codeLines, setCodeLines] = useState<string[]>([])
+  const [showVerification, setShowVerification] = useState(false)
+  const [verificationCode, setVerificationCode] = useState("")
+  const [email, setEmail] = useState("")
 
   useEffect(() => {
-    if (currentLine < codeSnippet.length) {
-      const timer = setTimeout(() => {
-        setCodeLines(prev => [...prev, codeSnippet[currentLine]])
-        setCurrentLine(prev => prev + 1)
-      }, 50) // Faster typing speed
-      return () => clearTimeout(timer)
+    const lines = codeSnippet.split('\n')
+    setCodeLines(lines)
+
+    let currentLineIndex = 0
+    const interval = setInterval(() => {
+      if (currentLineIndex < lines.length) {
+        setCurrentLine(currentLineIndex + 1)
+        currentLineIndex++
+      } else {
+        clearInterval(interval)
+      }
+    }, 50)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      const formData = new FormData(e.currentTarget)
+      const email = formData.get("email") as string
+      const password = formData.get("password") as string
+      const confirmPassword = formData.get("confirmPassword") as string
+      const fullName = formData.get("fullName") as string
+      const phoneNumber = formData.get("phoneNumber") as string
+      const acceptTerms = formData.get("acceptTerms") === "on"
+
+      // Validation
+      if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
+        toast.error("Please fill in all fields")
+        setIsLoading(false)
+        return
+      }
+
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match")
+        setIsLoading(false)
+        return
+      }
+
+      if (!acceptTerms) {
+        toast.error("Please accept the terms and conditions")
+        setIsLoading(false)
+        return
+      }
+
+      // Format phone number - remove any spaces and ensure it starts with country code
+      const cleanPhoneNumber = phoneNumber.replace(/\s+/g, '').replace(/^0+/, '')
+      const formattedPhoneNumber = countryCode + cleanPhoneNumber
+
+      // Sign up with Supabase
+      const { data, error } = await signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone_number: formattedPhoneNumber,
+            country_code: countryCode,
+            phone_verified: false
+          }
+        }
+      })
+
+      if (error) {
+        if (error.message.includes('unique constraint')) {
+          toast.error("This email is already registered. Please try signing in instead.")
+        } else {
+          console.error("Signup error:", error)
+          toast.error(error.message)
+        }
+        return
+      }
+
+      if (data?.user) {
+        setEmail(email)
+        setShowVerification(true)
+        toast.success("Please enter the verification code sent to your email.")
+      } else {
+        toast.error("Something went wrong. Please try again.")
+      }
+    } catch (error: any) {
+      console.error("Unexpected error during sign up:", error)
+      toast.error(error?.message || "An unexpected error occurred during sign up")
+    } finally {
+      setIsLoading(false)
     }
-  }, [currentLine])
+  }
+
+  const handleVerification = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      const { data, error } = await verifyOtp({
+        email,
+        token: verificationCode,
+        type: 'signup'
+      })
+
+      if (error) {
+        console.error("Verification error:", error)
+        toast.error(error.message)
+        return
+      }
+
+      if (data?.user) {
+        toast.success("Email verified successfully!")
+        router.push("/sign-in")
+      }
+    } catch (error: any) {
+      console.error("Verification error:", error)
+      toast.error(error?.message || "Failed to verify email")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const getCodeColor = (line: string) => {
+    if (line.trim().startsWith('//')) return 'text-green-500'
+    if (line.includes('interface') || line.includes('class')) return 'text-blue-500'
+    if (line.includes('async') || line.includes('return')) return 'text-purple-500'
+    if (line.includes('string') || line.includes('Date')) return 'text-yellow-500'
+    return 'text-gray-300'
+  }
 
   return (
-    <div className="container relative flex h-screen w-screen flex-col lg:flex-row-reverse items-center justify-center gap-8">
-      {/* Code Animation Background */}
-      <div className="hidden lg:block absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
-        <pre className="absolute inset-0 p-4 text-sm font-mono overflow-hidden opacity-10">
-          {codeLines.map((line, i) => (
-            <div
-              key={i}
-              className="code-line"
-              style={{ 
-                animationDelay: `${i * 50}ms`,
-                color: getCodeColor(line)
-              }}
-            >
-              {line}
-            </div>
-          ))}
-        </pre>
+    <div className="relative min-h-[calc(100vh-4rem)]">
+      {/* Grid Background */}
+      <div className="absolute inset-0 bg-background">
+        <div className="absolute h-full w-full bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:144px_144px]" />
       </div>
 
-      {/* Code Animation Display */}
-      <div className="hidden lg:flex w-1/2 h-full items-center justify-center z-10">
-        <div className="relative w-full max-w-3xl p-8">
-          <div className="rounded-xl border bg-background/40 backdrop-blur-md shadow-xl">
-            <div className="flex items-center gap-2 px-4 py-3 border-b bg-background/50">
-              <div className="flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
+      <div className="relative grid lg:grid-cols-[60%_40%] h-[calc(100vh-4rem)]">
+        {/* Code Animation Section */}
+        <div className="relative hidden lg:flex items-center justify-center p-8">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-lg bg-[#1e1e1e]/30 backdrop-blur-sm shadow-2xl border border-white/10">
+            {/* Title bar */}
+            <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d]/50">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                  <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+                  <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+                </div>
+                <span className="text-xs text-gray-400">developer.ts</span>
               </div>
-              <div className="text-sm text-muted-foreground">script.ts</div>
             </div>
-            <pre className="p-4 text-sm font-mono overflow-x-auto">
-              {codeLines.map((line, i) => (
-                <div
-                  key={i}
-                  className="code-line"
-                  style={{ 
-                    animationDelay: `${i * 50}ms`,
-                    color: getCodeColor(line)
-                  }}
-                >
+            {/* Code content */}
+            <pre className="p-4 font-mono text-sm">
+              {codeLines.slice(0, currentLine).map((line, index) => (
+                <div key={index} className={`${getCodeColor(line)} whitespace-pre opacity-90`}>
                   {line}
                 </div>
               ))}
-              <div className="animate-cursor inline-block" />
+              <span className="animate-pulse">▋</span>
             </pre>
           </div>
         </div>
-      </div>
 
-      {/* Sign Up Form */}
-      <div className="w-full lg:w-1/2 flex justify-center items-center p-4 z-10">
-        <div className="w-full max-w-[500px]">
-          <div className="rounded-xl border bg-background/60 backdrop-blur-sm shadow-sm p-8">
-            <div className="flex flex-col space-y-2 text-center mb-8">
-              <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary">Create an account</h1>
-              <p className="text-base text-muted-foreground">
-                Enter your details to get started
-              </p>
-            </div>
-            <div className="grid gap-8">
-              <form>
-                <div className="grid gap-6">
-                  <div className="grid gap-3">
-                    <Label className="text-base" htmlFor="fullName">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="fullName"
-                        placeholder="Magacaaga oo saddexan"
-                        type="text"
-                        autoCapitalize="words"
-                        autoComplete="name"
-                        className="pl-10 h-12 text-base bg-background/50 backdrop-blur-sm transition-colors focus:bg-background/80"
-                      />
-                    </div>
+        {/* Sign Up Form Section */}
+        <div className="relative flex items-center justify-center p-8">
+          <div className="w-full max-w-lg mx-auto space-y-8">
+            <div className="bg-background/60 backdrop-blur-sm text-card-foreground rounded-xl border shadow-sm p-8">
+              {showVerification ? (
+                <>
+                  <div className="flex flex-col space-y-2 text-center mb-8">
+                    <h1 className="text-3xl font-bold tracking-tight">Verify your email</h1>
+                    <p className="text-lg text-muted-foreground">
+                      Enter the verification code sent to your email
+                    </p>
                   </div>
-                  <div className="grid gap-3">
-                    <Label className="text-base" htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        placeholder="name@example.com"
-                        type="email"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        className="pl-10 h-12 text-base bg-background/50 backdrop-blur-sm transition-colors focus:bg-background/80"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-3">
-                    <Label className="text-base" htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="new-password"
-                        className="pl-10 pr-10 h-12 text-base bg-background/50 backdrop-blur-sm transition-colors focus:bg-background/80"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-5 w-5" />
-                        ) : (
-                          <Eye className="h-5 w-5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid gap-3">
-                    <Label className="text-base" htmlFor="confirmPassword">Confirm Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        autoComplete="new-password"
-                        className="pl-10 pr-10 h-12 text-base bg-background/50 backdrop-blur-sm transition-colors focus:bg-background/80"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-5 w-5" />
-                        ) : (
-                          <Eye className="h-5 w-5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid gap-3">
-                    <Label className="text-base" htmlFor="phone">Phone Number</Label>
-                    <div className="flex gap-2">
-                      <CountrySelect onSelect={setCountryCode} />
-                      <div className="relative flex-1">
-                        <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+
+                  <form onSubmit={handleVerification} className="space-y-6">
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <Label className="text-base" htmlFor="verificationCode">Verification Code</Label>
                         <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="61 123 4567"
-                          autoComplete="tel"
-                          className="pl-10 h-12 text-base bg-background/50 backdrop-blur-sm transition-colors focus:bg-background/80"
+                          id="verificationCode"
+                          name="verificationCode"
+                          placeholder="Enter code"
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value)}
+                          className="h-12 text-base text-center tracking-widest"
+                          maxLength={6}
                         />
                       </div>
+
+                      <Button disabled={isLoading} className="w-full h-12 text-base">
+                        {isLoading && (
+                          <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        )}
+                        Verify Email
+                      </Button>
                     </div>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-col space-y-2 text-center mb-8">
+                    <h1 className="text-3xl font-bold tracking-tight">Create an account</h1>
+                    <p className="text-lg text-muted-foreground">
+                      Enter your details below to create your account
+                    </p>
                   </div>
-                  <div className="grid gap-3">
-                    <Label className="text-base" htmlFor="gender">Gender</Label>
-                    <div className="relative">
-                      <Users className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                      <Select>
-                        <SelectTrigger className="pl-10 h-12 text-base bg-background/50 backdrop-blur-sm transition-colors focus:bg-background/80">
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                        </SelectContent>
-                      </Select>
+
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <Label className="text-base" htmlFor="fullName">Full Name</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="fullName"
+                            name="fullName"
+                            placeholder="John Doe"
+                            type="text"
+                            autoCapitalize="none"
+                            autoComplete="name"
+                            autoCorrect="off"
+                            disabled={isLoading}
+                            className="pl-10 h-12 text-base"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-base" htmlFor="email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="email"
+                            name="email"
+                            placeholder="name@example.com"
+                            type="email"
+                            autoCapitalize="none"
+                            autoComplete="email"
+                            autoCorrect="off"
+                            disabled={isLoading}
+                            className="pl-10 h-12 text-base"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-base" htmlFor="phoneNumber">Phone Number</Label>
+                        <div className="flex gap-2">
+                          <CountrySelect
+                            value={countryCode}
+                            onValueChange={setCountryCode}
+                          />
+                          <div className="relative flex-1">
+                            <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              id="phoneNumber"
+                              name="phoneNumber"
+                              placeholder="77 123 4567"
+                              type="tel"
+                              autoCapitalize="none"
+                              autoComplete="tel"
+                              disabled={isLoading}
+                              className="pl-10 h-12 text-base"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-base" htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="password"
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            autoCapitalize="none"
+                            autoComplete="new-password"
+                            disabled={isLoading}
+                            className="pl-10 h-12 text-base"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-2 h-9 w-9"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                            <span className="sr-only">
+                              {showPassword ? "Hide password" : "Show password"}
+                            </span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-base" htmlFor="confirmPassword">Confirm Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            autoCapitalize="none"
+                            autoComplete="new-password"
+                            disabled={isLoading}
+                            className="pl-10 h-12 text-base"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-2 h-9 w-9"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                            <span className="sr-only">
+                              {showConfirmPassword ? "Hide password" : "Show password"}
+                            </span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="acceptTerms" name="acceptTerms" className="h-5 w-5" />
+                        <label
+                          htmlFor="acceptTerms"
+                          className="text-base font-medium leading-none"
+                        >
+                          Accept terms and conditions
+                        </label>
+                      </div>
+
+                      <Button disabled={isLoading} className="w-full h-12 text-base">
+                        {isLoading && (
+                          <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        )}
+                        Sign Up
+                      </Button>
                     </div>
-                  </div>
-                  <Button className="w-full h-12 text-base">
-                    Sign Up
-                  </Button>
-                </div>
-              </form>
+                  </form>
+                </>
+              )}
+            </div>
+
+            {!showVerification && (
               <div className="text-center text-base">
                 Already have an account?{" "}
-                <Link href="/sign-in" className="text-primary hover:text-primary/80 underline underline-offset-4">
+                <Link
+                  href="/sign-in"
+                  className="text-primary hover:text-primary/80 underline underline-offset-4 font-medium"
+                >
                   Sign in
                 </Link>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   )
-}
-
-function getCodeColor(line: string): string {
-  // VS Code-like syntax highlighting
-  if (line.trim().startsWith('//')) return '#6A9955' // Comments
-  if (line.includes('class ')) return '#569CD6' // Class keyword
-  if (line.includes('interface ')) return '#569CD6' // Interface keyword
-  if (line.includes('async ')) return '#569CD6' // Async keyword
-  if (line.includes('private ')) return '#569CD6' // Private keyword
-  if (line.includes('constructor')) return '#DCDCAA' // Constructor
-  if (line.includes('console.log')) return '#DCDCAA' // Function calls
-  if (line.match(/'[^']*'/)) return '#CE9178' // String literals
-  if (line.match(/\b\d+\b/)) return '#B5CEA8' // Numbers
-  if (line.includes('import ')) return '#C586C0' // Import statements
-  if (line.includes('return ')) return '#C586C0' // Return statements
-  if (line.includes('await ')) return '#C586C0' // Await keyword
-  if (line.match(/\b(true|false|null|undefined)\b/)) return '#569CD6' // Constants
-  if (line.match(/[{}[\]()]/)) return '#D4D4D4' // Brackets
-  if (line.includes(':')) return '#9CDCFE' // Type annotations
-  return '#D4D4D4' // Default text color
 } 

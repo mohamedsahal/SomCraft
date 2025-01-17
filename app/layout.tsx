@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
+import { Inter } from "next/font/google";
+import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Background } from "@/components/background";
 import { MainNav } from "@/components/nav/main-nav";
-import "./globals.css";
+import { Toaster } from "sonner";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Tech Academy - Master Web Development",
-  description: "Learn web development with expert mentorship and hands-on projects",
+  title: "SomaliCraft Academy",
+  description: "Master web development with practical skills and expert mentorship",
 };
 
 export default function RootLayout({
@@ -17,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={GeistSans.className}>
+      <body className={inter.className}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -26,7 +29,10 @@ export default function RootLayout({
         >
           <Background />
           <MainNav />
-          {children}
+          <main className="min-h-[calc(100vh-4rem)]">
+            {children}
+          </main>
+          <Toaster richColors closeButton position="top-right" />
         </ThemeProvider>
       </body>
     </html>
