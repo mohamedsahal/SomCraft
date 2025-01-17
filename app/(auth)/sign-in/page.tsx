@@ -67,11 +67,18 @@ await authService.login({
 export default function SignInPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { signIn } = useSupabase()
+  const { signIn, user } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [currentLine, setCurrentLine] = useState(0)
   const [codeLines, setCodeLines] = useState<string[]>([])
+
+  // Check if user is already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/admin/dashboard')
+    }
+  }, [user, router])
 
   useEffect(() => {
     const lines = codeSnippet.split('\n')
@@ -118,7 +125,7 @@ export default function SignInPage() {
       }
 
       if (data?.session) {
-        const redirectTo = searchParams.get("redirect") || "/dashboard"
+        const redirectTo = searchParams.get("redirect") || "/admin/dashboard"
         toast.success("Signed in successfully!")
         router.push(redirectTo)
       }

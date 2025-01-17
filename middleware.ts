@@ -1,34 +1,69 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req: request, res })
+  // Create a response object that we can modify
+  const response = NextResponse.next()
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  try {
+    // Create the Supabase client
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            // If the cookie is updated, update the response headers
+            response.cookies.set({ name, value, ...options })
+          },
+          remove(name: string, options: CookieOptions) {
+            response.cookies.delete({ name, ...options })
+          },
+        },
+      }
+    )
 
-  // Check if we're on an admin route
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/sign-in', request.url))
+    // Refresh the session
+    await supabase.auth.getSession()
+
+    // Get the current session
+    const { data: { session } } = await supabase.auth.getSession()
+
+    // Protected routes
+    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
+    const isAuthRoute = ['/sign-in', '/sign-up'].includes(request.nextUrl.pathname)
+
+    if (isProtectedRoute && !session) {
+      const redirectUrl = new URL('/sign-in', request.url)
+      redirectUrl.searchParams.set('redirect', request.nextUrl.pathname)
+      return NextResponse.redirect(redirectUrl)
     }
 
-    // Check if user is super admin
-    const { data: { user } } = await supabase.auth.getUser()
-    const isAdmin = user?.app_metadata?.roles?.includes('super_admin') || 
-                   Boolean(user?.app_metadata?.is_super_admin)
-
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL('/', request.url))
+    // Redirect to dashboard if already logged in and trying to access auth routes
+    if (isAuthRoute && session) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+
+    return response
+  } catch (error) {
+    // If there's an error, return the original response
+    return response
   }
-
-  return res
 }
 
 export const config = {
-  matcher: ['/admin/:path*']
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public (public files)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+  ],
 } 

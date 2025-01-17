@@ -6,23 +6,11 @@ import { Database } from '@/types/supabase'
 export function useSupabase() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   useEffect(() => {
     // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      
-      // Check if user is super admin
-      if (currentUser) {
-        const metadata = currentUser.app_metadata
-        setIsSuperAdmin(
-          metadata?.roles?.includes('super_admin') || 
-          Boolean(metadata?.is_super_admin)
-        )
-      }
-      
+      setUser(session?.user ?? null)
       setLoading(false)
     })
 
@@ -30,19 +18,7 @@ export function useSupabase() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      
-      // Check if user is super admin
-      if (currentUser) {
-        const metadata = currentUser.app_metadata
-        setIsSuperAdmin(
-          metadata?.roles?.includes('super_admin') || 
-          Boolean(metadata?.is_super_admin)
-        )
-      } else {
-        setIsSuperAdmin(false)
-      }
+      setUser(session?.user ?? null)
     })
 
     return () => subscription.unsubscribe()
@@ -94,8 +70,6 @@ export function useSupabase() {
   return {
     user,
     loading,
-    isSuperAdmin,
-    supabase,
     signIn,
     signUp,
     signOut,
