@@ -37,7 +37,7 @@ export default function DashboardPage() {
       <div className="mb-8">
         <h2 className="text-3xl font-bold tracking-tight">Welcome back, Admin</h2>
         <p className="mt-2 text-muted-foreground">
-          Here's what's happening with your academy today.
+          Here&apos;s what&apos;s happening with your academy today.
         </p>
       </div>
 

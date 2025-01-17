@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Mail, Lock, Eye, EyeOff, User, Phone } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -151,9 +151,14 @@ export default function SignUpPage() {
       } else {
         toast.error("Something went wrong. Please try again.")
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Unexpected error:", error)
-      toast.error(error?.message || "An unexpected error occurred during sign up")
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'object' && error && 'message' in error
+        ? String(error.message)
+        : "An unexpected error occurred during sign up"
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }

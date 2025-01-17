@@ -105,7 +105,6 @@ export default function SignInPage() {
       const formData = new FormData(e.currentTarget)
       const email = formData.get("email") as string
       const password = formData.get("password") as string
-      const rememberMe = formData.get("rememberMe") === "on"
 
       if (!email || !password) {
         toast.error("Please fill in all fields")

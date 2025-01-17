@@ -58,7 +58,7 @@ export function Hero() {
       }
     }, 100)
     return () => clearInterval(interval)
-  }, [])
+  }, [fullCodeText, fullTaglineText])
 
   return (
     <section className="py-12 md:py-16 flex items-center">
@@ -135,7 +135,7 @@ export function Hero() {
             </h1>
             
             <p className="text-lg text-muted-foreground max-w-[600px] mx-auto lg:mx-0 animate-slide-up delay-200">
-              Join SomaliCraft's comprehensive program to learn practical skills, work on real-world projects, and get expert mentorship
+              Join SomaliCraft&apos;s comprehensive program to learn practical skills, work on real-world projects, and get expert mentorship
             </p>
             
             <div className="flex flex-wrap gap-4 animate-slide-up delay-300 justify-center lg:justify-start">

@@ -39,7 +39,16 @@ export function useSupabase() {
     return supabase.auth.signInWithPassword({ email, password })
   }
 
-  const signUp = async ({ email, password, options }: { email: string; password: string; options?: { data: { [key: string]: any } } }) => {
+  const signUp = async ({ email, password, options }: { 
+    email: string; 
+    password: string; 
+    options?: { 
+      data: { 
+        full_name?: string;
+        [key: string]: string | undefined;
+      } 
+    } 
+  }) => {
     return supabase.auth.signUp({ email, password, options })
   }
 
