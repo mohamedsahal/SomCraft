@@ -78,6 +78,18 @@ const config: Config = {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' }
         },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' }
+        },
+        'border-flow': {
+          '0%, 100%': { transform: 'translateX(-100%)' },
+          '50%': { transform: 'translateX(100%)' }
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' }
+        }
       },
       animation: {
         "fade-in": "fade-in 0.5s ease-out",
@@ -85,6 +97,9 @@ const config: Config = {
         'morph': 'morph 8s ease-in-out infinite',
         'slide-up-delayed': 'slide-up 0.5s ease-out forwards var(--delay)',
         shine: 'shine 2s linear infinite',
+        'blink': 'blink 1s step-end infinite',
+        'border-flow': 'border-flow 3s ease-in-out infinite',
+        'shimmer': 'shimmer 2s linear infinite',
       },
       backgroundImage: {
         'grid-white': `
@@ -97,6 +112,11 @@ const config: Config = {
         '--primary-rgb': '0, 0, 0',
         '.dark': {
           '--primary-rgb': '255, 255, 255'
+        }
+      },
+      utilities: {
+        '.animation-delay-500': {
+          'animation-delay': '500ms',
         }
       }
     },

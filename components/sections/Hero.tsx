@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { 
   Code, 
@@ -9,7 +10,8 @@ import {
   GitBranch,
   Terminal,
   Blocks,
-  LayoutGrid
+  LayoutGrid,
+  MessageCircleCode
 } from "lucide-react"
 
 const techStacks = [
@@ -31,21 +33,112 @@ const roadmapSteps = [
 ]
 
 export function Hero() {
+  const [codeText, setCodeText] = useState("")
+  const [taglineText, setTaglineText] = useState("")
+  const [showResult, setShowResult] = useState(false)
+  const fullCodeText = '<div className="flex items-center"><MessageCircleCode className="h-6 w-6 mr-2 hover:scale-110 transition-transform" />SomaliCraft</div>'
+  const fullTaglineText = "// Crafting the Future with Somali Innovation"
+  
+  useEffect(() => {
+    let currentIndex = 0
+    const interval = setInterval(() => {
+      if (currentIndex <= fullCodeText.length) {
+        setCodeText(fullCodeText.slice(0, currentIndex + 1))
+        currentIndex++
+      } else if (currentIndex <= fullCodeText.length + fullTaglineText.length) {
+        setTaglineText(fullTaglineText.slice(0, currentIndex - fullCodeText.length + 1))
+        currentIndex++
+      } else {
+        clearInterval(interval)
+        setTimeout(() => setShowResult(true), 500)
+        setTimeout(() => {
+          setCodeText("")
+          setTaglineText("")
+        }, 300)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <section className="py-12 md:py-16 flex items-center">
       <div className="container px-4 md:px-6">
         <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
           {/* Left Side - Text Content */}
-          <div className="flex flex-col space-y-6 animate-fade-in">
+          <div className="flex flex-col space-y-6 animate-fade-in text-center lg:text-left">
+            {/* Dynamic Brand Logo */}
+            <div className="inline-block mx-auto lg:mx-0">
+              <div className="relative w-fit rounded-lg overflow-hidden">
+                {/* Code editor header */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500/20" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/20" />
+                  </div>
+                  <span className="text-xs text-muted-foreground/60 font-mono">index.tsx</span>
+                </div>
+
+                {/* Code content */}
+                <div className="flex">
+                  {/* Line numbers */}
+                  <div className="px-2 py-4 bg-primary/5 text-primary/30 font-mono text-sm text-right">
+                    <div>1</div>
+                    <div>2</div>
+                  </div>
+
+                  {/* Code area */}
+                  <div className="p-4 bg-primary/[0.03] min-w-[380px]">
+                    <div className="flex flex-col gap-1.5">
+                      {!showResult ? (
+                        <div className="flex flex-col font-mono">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm text-primary/80 tracking-tight font-medium">
+                              {codeText}
+                            </span>
+                            <span className="animate-blink text-sm">|</span>
+                          </div>
+                          <div className="flex items-baseline gap-1 h-6">
+                            <span className="text-xs text-muted-foreground/80">
+                              {taglineText}
+                            </span>
+                            {codeText.length === fullCodeText.length && (
+                              <span className="animate-blink text-xs">|</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <div className="px-4 py-1.5 rounded-md bg-background/80 border border-primary/20">
+                            <div className="flex items-center">
+                              <MessageCircleCode 
+                                className="h-6 w-6 mr-2 text-primary hover:scale-110 transition-transform" 
+                              />
+                              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/90 to-primary/70">
+                                SomaliCraft
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-sm text-muted-foreground/80 font-medium italic pl-1">
+                            Crafting the Future with Somali Innovation
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <h1 className="text-3xl md:text-5xl font-bold tracking-tighter animate-slide-up bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">
               Master Web Development in 24 Weeks
             </h1>
             
-            <p className="text-lg text-muted-foreground max-w-[600px] animate-slide-up delay-200">
-              Practical skills, real-world projects, and expert mentorship to launch your career in tech
+            <p className="text-lg text-muted-foreground max-w-[600px] mx-auto lg:mx-0 animate-slide-up delay-200">
+              Join SomaliCraft's comprehensive program to learn practical skills, work on real-world projects, and get expert mentorship
             </p>
             
-            <div className="flex flex-wrap gap-4 animate-slide-up delay-300">
+            <div className="flex flex-wrap gap-4 animate-slide-up delay-300 justify-center lg:justify-start">
               <Button 
                 size="lg" 
                 className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -98,9 +191,6 @@ export function Hero() {
                     className="group relative p-3 rounded-lg bg-background/50 border border-primary/10 hover:border-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] transition-all duration-300"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    {/* Glow effect */}
-                    <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    
                     <div className="relative">
                       <div className="flex items-center justify-between mb-2">
                         <div>
