@@ -1,69 +1,76 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  // Create a response object that we can modify
-  const response = NextResponse.next()
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
 
-  try {
-    // Create the Supabase client
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            // If the cookie is updated, update the response headers
-            response.cookies.set({ name, value, ...options })
-          },
-          remove(name: string, options: CookieOptions) {
-            response.cookies.delete({ name, ...options })
-          },
-        },
-      }
-    )
+  // Check auth status
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
-    // Refresh the session
-    await supabase.auth.getSession()
-
-    // Get the current session
-    const { data: { session } } = await supabase.auth.getSession()
-
-    // Protected routes
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
-    const isAuthRoute = ['/sign-in', '/sign-up'].includes(request.nextUrl.pathname)
-
-    if (isProtectedRoute && !session) {
-      const redirectUrl = new URL('/sign-in', request.url)
-      redirectUrl.searchParams.set('redirect', request.nextUrl.pathname)
-      return NextResponse.redirect(redirectUrl)
-    }
-
-    // Redirect to dashboard if already logged in and trying to access auth routes
-    if (isAuthRoute && session) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
-    return response
-  } catch (error) {
-    // If there's an error, return the original response
-    return response
+  // If user is not logged in and trying to access protected route
+  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/sign-in'
+    redirectUrl.searchParams.set(`redirectedFrom`, req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
+
+  // If user is logged in, get their role
+  if (session?.user) {
+    try {
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('role, is_super_admin')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error || !userData) {
+        console.error('Error fetching user role:', error)
+        return NextResponse.redirect(new URL('/sign-in', req.url))
+      }
+
+      // Handle base dashboard route
+      if (req.nextUrl.pathname === '/dashboard') {
+        const redirectUrl = new URL(
+          `/dashboard/${userData.is_super_admin ? 'admin' : userData.role}`,
+          req.url
+        )
+        return NextResponse.redirect(redirectUrl)
+      }
+
+      // Protect admin routes
+      if (req.nextUrl.pathname.startsWith('/dashboard/admin') && !userData.is_super_admin) {
+        return NextResponse.redirect(new URL(`/dashboard/${userData.role}`, req.url))
+      }
+
+      // Protect student routes
+      if (req.nextUrl.pathname.startsWith('/dashboard/student') && userData.role !== 'student') {
+        return NextResponse.redirect(
+          new URL(`/dashboard/${userData.is_super_admin ? 'admin' : userData.role}`, req.url)
+        )
+      }
+    } catch (error) {
+      console.error('Error in middleware:', error)
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
+  }
+
+  return res
 }
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public (public files)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 } 

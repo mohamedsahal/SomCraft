@@ -11,23 +11,89 @@ type SessionResponse = {
   error: Error | null
 }
 
+interface ExtendedUser extends User {
+  role?: string
+  is_super_admin?: boolean
+}
+
 export function useSupabase() {
   const supabase = createClientComponentClient()
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<ExtendedUser | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const getUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role, is_super_admin')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching user role:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error in getUserRole:', error)
+      return null
+    }
+  }
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          const roleData = await getUserRole(session.user.id)
+          
+          if (roleData) {
+            setUser({
+              ...session.user,
+              role: roleData.role,
+              is_super_admin: roleData.is_super_admin
+            })
+          } else {
+            setUser(session.user)
+          }
+        } else {
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('Error in getUser:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        if (session?.user) {
+          const roleData = await getUserRole(session.user.id)
+          
+          if (roleData) {
+            setUser({
+              ...session.user,
+              role: roleData.role,
+              is_super_admin: roleData.is_super_admin
+            })
+          } else {
+            setUser(session.user)
+          }
+        } else {
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('Error in auth change:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
     })
 
     return () => {
@@ -36,19 +102,23 @@ export function useSupabase() {
   }, [supabase.auth])
 
   const signIn = async ({ email, password }: { email: string; password: string }) => {
-    return supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!error && data.user) {
+      const roleData = await getUserRole(data.user.id)
+      if (roleData) {
+        setUser({
+          ...data.user,
+          role: roleData.role,
+          is_super_admin: roleData.is_super_admin
+        })
+      } else {
+        setUser(data.user)
+      }
+    }
+    return { data, error }
   }
 
-  const signUp = async ({ email, password, options }: { 
-    email: string; 
-    password: string; 
-    options?: { 
-      data: { 
-        full_name?: string;
-        [key: string]: string | undefined;
-      } 
-    } 
-  }) => {
+  const signUp = async ({ email, password, options }: { email: string; password: string; options?: { data: { [key: string]: any } } }) => {
     return supabase.auth.signUp({ email, password, options })
   }
 

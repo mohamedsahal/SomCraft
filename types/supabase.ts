@@ -17,6 +17,7 @@ export type Database = {
           phone_number: string | null
           country_code: string
           role: 'student' | 'instructor' | 'admin'
+          is_super_admin: boolean
           bio: string | null
           github_url: string | null
           linkedin_url: string | null
@@ -30,6 +31,7 @@ export type Database = {
           phone_number?: string | null
           country_code?: string
           role?: 'student' | 'instructor' | 'admin'
+          is_super_admin?: boolean
           bio?: string | null
           github_url?: string | null
           linkedin_url?: string | null
@@ -43,6 +45,7 @@ export type Database = {
           phone_number?: string | null
           country_code?: string
           role?: 'student' | 'instructor' | 'admin'
+          is_super_admin?: boolean
           bio?: string | null
           github_url?: string | null
           linkedin_url?: string | null

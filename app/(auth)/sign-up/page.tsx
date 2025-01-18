@@ -3,13 +3,59 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Mail, Lock, Eye, EyeOff, User } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, User as UserIcon, Phone, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useSupabase } from "@/hooks/use-supabase"
+import type { User } from "@supabase/supabase-js"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+interface ExtendedUser extends User {
+  role?: string;
+  is_super_admin?: boolean;
+}
+
+// Add country codes data
+const countryCodes = [
+  { code: '+252', country: 'Somalia' },
+  { code: '+1', country: 'United States' },
+  { code: '+44', country: 'United Kingdom' },
+  { code: '+91', country: 'India' },
+  { code: '+86', country: 'China' },
+  { code: '+81', country: 'Japan' },
+  { code: '+82', country: 'South Korea' },
+  { code: '+966', country: 'Saudi Arabia' },
+  { code: '+971', country: 'United Arab Emirates' },
+  { code: '+20', country: 'Egypt' },
+  { code: '+254', country: 'Kenya' },
+  { code: '+251', country: 'Ethiopia' },
+  { code: '+255', country: 'Tanzania' },
+  { code: '+256', country: 'Uganda' },
+  { code: '+250', country: 'Rwanda' },
+  { code: '+253', country: 'Djibouti' },
+  { code: '+249', country: 'Sudan' },
+  { code: '+27', country: 'South Africa' },
+  { code: '+234', country: 'Nigeria' },
+  { code: '+212', country: 'Morocco' },
+  { code: '+216', country: 'Tunisia' },
+  { code: '+213', country: 'Algeria' },
+  { code: '+218', country: 'Libya' },
+  { code: '+233', country: 'Ghana' },
+  { code: '+225', country: 'Ivory Coast' },
+  { code: '+237', country: 'Cameroon' },
+  { code: '+244', country: 'Angola' },
+  { code: '+264', country: 'Namibia' },
+  { code: '+265', country: 'Malawi' }
+].sort((a, b) => a.country.localeCompare(b.country))
 
 const codeSnippet = `// Welcome to SomaliCraft Academy
 import { Developer } from '@somalicraft/core';
@@ -62,21 +108,34 @@ you.buildProject('My First Website');`
 
 export default function SignUpPage() {
   const router = useRouter()
-  const { signUp, user } = useSupabase()
+  const { signUp, user: baseUser, loading } = useSupabase()
+  const user = baseUser as ExtendedUser | null
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [currentLine, setCurrentLine] = useState(0)
   const [codeLines, setCodeLines] = useState<string[]>([])
+  const [countryCode, setCountryCode] = useState('+252')
 
-  // Check if user is already logged in
+  // Handle auth redirect
   useEffect(() => {
-    if (user) {
-      router.push('/admin/dashboard')
+    if (!loading && user) {
+      if (user.is_super_admin) {
+        router.push('/dashboard/admin')
+        return
+      }
+      if (user.role) {
+        router.push(`/dashboard/${user.role}`)
+        return
+      }
+      router.push('/dashboard/student')
     }
-  }, [user, router])
+  }, [user, loading, router])
 
+  // Handle code animation
   useEffect(() => {
+    if (loading || user) return // Don't start animation if loading or user exists
+
     const lines = codeSnippet.split('\n')
     setCodeLines(lines)
 
@@ -91,7 +150,7 @@ export default function SignUpPage() {
     }, 50)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [loading, user])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -103,10 +162,11 @@ export default function SignUpPage() {
       const password = formData.get("password") as string
       const confirmPassword = formData.get("confirmPassword") as string
       const fullName = formData.get("fullName") as string
+      const phoneNumber = formData.get("phone") as string
       const acceptTerms = formData.get("acceptTerms") === "on"
 
       // Validation
-      if (!email || !password || !confirmPassword || !fullName) {
+      if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
         toast.error("Please fill in all fields")
         setIsLoading(false)
         return
@@ -124,6 +184,9 @@ export default function SignUpPage() {
         return
       }
 
+      // Format phone number (remove any spaces or special characters)
+      const formattedPhone = phoneNumber.replace(/\s+/g, '').replace(/[^\d]/g, '')
+
       // Sign up with Supabase
       const { data, error } = await signUp({
         email,
@@ -131,7 +194,12 @@ export default function SignUpPage() {
         options: {
           data: {
             full_name: fullName,
-          }
+            phone_number: formattedPhone,
+            country_code: countryCode,
+            is_super_admin: false,
+            role: 'student'
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
 
@@ -147,18 +215,13 @@ export default function SignUpPage() {
 
       if (data?.user) {
         toast.success("Please check your email to verify your account.")
-        router.push("/sign-in")
+        router.push(`/verify?email=${encodeURIComponent(email)}`)
       } else {
         toast.error("Something went wrong. Please try again.")
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Unexpected error:", error)
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : typeof error === 'object' && error && 'message' in error
-        ? String(error.message)
-        : "An unexpected error occurred during sign up"
-      toast.error(errorMessage)
+      toast.error(error?.message || "An unexpected error occurred during sign up")
     } finally {
       setIsLoading(false)
     }
@@ -172,6 +235,21 @@ export default function SignUpPage() {
     return 'text-gray-300'
   }
 
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Don't show the form if user is already logged in
+  if (user) {
+    return null
+  }
+
+  // Show the sign up form
   return (
     <div className="relative min-h-[calc(100vh-4rem)]">
       {/* Grid Background */}
@@ -222,7 +300,7 @@ export default function SignUpPage() {
                   <div className="space-y-2">
                     <Label className="text-base" htmlFor="fullName">Full Name</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                      <UserIcon className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                       <Input
                         id="fullName"
                         name="fullName"
@@ -316,6 +394,40 @@ export default function SignUpPage() {
                           {showConfirmPassword ? "Hide password" : "Show password"}
                         </span>
                       </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-base" htmlFor="phone">Phone Number</Label>
+                    <div className="flex gap-2">
+                      <div className="relative w-[100px]">
+                        <Select value={countryCode} onValueChange={setCountryCode}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Code" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countryCodes.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                {country.code}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative flex-1">
+                        <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          name="phone"
+                          placeholder="61xxxxxxx"
+                          type="tel"
+                          autoCapitalize="none"
+                          autoComplete="tel"
+                          autoCorrect="off"
+                          disabled={isLoading}
+                          className="pl-10 h-12 text-base"
+                        />
+                      </div>
                     </div>
                   </div>
 
