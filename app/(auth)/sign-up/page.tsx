@@ -116,25 +116,27 @@ export default function SignUpPage() {
   const [currentLine, setCurrentLine] = useState(0)
   const [codeLines, setCodeLines] = useState<string[]>([])
   const [countryCode, setCountryCode] = useState('+252')
+  const [error, setError] = useState<string | null>(null)
 
   // Handle auth redirect
   useEffect(() => {
     if (!loading && user) {
       if (user.is_super_admin) {
         router.push('/dashboard/admin')
-        return
+      } else if (user.role === 'student' || !user.role) {
+        // All new users are created as students, so redirect undefined roles to student dashboard
+        router.push('/dashboard/student')
+      } else {
+        // This case should never happen based on our sign-up form
+        console.warn('Unexpected user role:', user.role)
+        router.push('/dashboard/student')
       }
-      if (user.role) {
-        router.push(`/dashboard/${user.role}`)
-        return
-      }
-      router.push('/dashboard/student')
     }
   }, [user, loading, router])
 
   // Handle code animation
   useEffect(() => {
-    if (loading || user) return // Don't start animation if loading or user exists
+    if (loading || user) return
 
     const lines = codeSnippet.split('\n')
     setCodeLines(lines)
@@ -154,7 +156,10 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (isLoading) return
+
     setIsLoading(true)
+    setError(null)
 
     try {
       const formData = new FormData(e.currentTarget)
@@ -167,28 +172,22 @@ export default function SignUpPage() {
 
       // Validation
       if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
-        toast.error("Please fill in all fields")
-        setIsLoading(false)
-        return
+        throw new Error("Please fill in all fields")
       }
 
       if (password !== confirmPassword) {
-        toast.error("Passwords do not match")
-        setIsLoading(false)
-        return
+        throw new Error("Passwords do not match")
       }
 
       if (!acceptTerms) {
-        toast.error("Please accept the terms and conditions")
-        setIsLoading(false)
-        return
+        throw new Error("Please accept the terms and conditions")
       }
 
       // Format phone number (remove any spaces or special characters)
       const formattedPhone = phoneNumber.replace(/\s+/g, '').replace(/[^\d]/g, '')
 
       // Sign up with Supabase
-      const { data, error } = await signUp({
+      const { data, error: signUpError } = await signUp({
         email,
         password,
         options: {
@@ -203,25 +202,23 @@ export default function SignUpPage() {
         }
       })
 
-      if (error) {
-        if (error.message.includes('unique constraint')) {
-          toast.error("This email is already registered. Please try signing in instead.")
-        } else {
-          console.error("Signup error:", error)
-          toast.error(error.message)
+      if (signUpError) {
+        if (signUpError.message.includes('unique constraint')) {
+          throw new Error("This email is already registered. Please try signing in instead.")
         }
-        return
+        throw signUpError
       }
 
       if (data?.user) {
         toast.success("Please check your email to verify your account.")
         router.push(`/verify?email=${encodeURIComponent(email)}`)
       } else {
-        toast.error("Something went wrong. Please try again.")
+        throw new Error("Something went wrong. Please try again.")
       }
     } catch (error: any) {
-      console.error("Unexpected error:", error)
-      toast.error(error?.message || "An unexpected error occurred during sign up")
+      console.error("Sign up error:", error)
+      setError(error.message || "An unexpected error occurred during sign up")
+      toast.error(error.message || "An unexpected error occurred during sign up")
     } finally {
       setIsLoading(false)
     }
@@ -238,7 +235,7 @@ export default function SignUpPage() {
   // Show loading state while checking auth
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )

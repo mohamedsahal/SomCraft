@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useSupabase } from "@/app/hooks/use-supabase"
+import { useSupabase } from "@/app/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,7 +31,7 @@ login();`
 
 export default function SignInPage() {
   const router = useRouter()
-  const { signIn, user, loading } = useSupabase()
+  const { user, loading, signIn } = useSupabase()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -40,18 +40,17 @@ export default function SignInPage() {
   const [currentLine, setCurrentLine] = useState(0)
   const [codeLines, setCodeLines] = useState<string[]>([])
 
-  // Handle auth redirect
+  // Redirect if already authenticated
   useEffect(() => {
     if (!loading && user) {
-      if (user.is_super_admin) {
-        router.push('/dashboard/admin')
-        return
+      const userData = user as any // Type assertion for user metadata
+      if (userData.is_super_admin) {
+        router.replace('/dashboard/admin')
+      } else if (userData.role === 'student') {
+        router.replace('/dashboard/student')
+      } else {
+        router.replace('/dashboard')
       }
-      if (user.role) {
-        router.push(`/dashboard/${user.role}`)
-        return
-      }
-      router.push('/dashboard/student')
     }
   }, [user, loading, router])
 
@@ -77,16 +76,33 @@ export default function SignInPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isLoading) return
+    
     setError(null)
     setIsLoading(true)
 
     try {
-      const { error } = await signIn({ email, password })
-      if (error) throw error
+      const { error: signInError } = await signIn({ email, password })
+      if (signInError) throw signInError
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in')
+    } finally {
       setIsLoading(false)
     }
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Don't render if already authenticated
+  if (user) {
+    return null
   }
 
   const getCodeColor = (line: string) => {
@@ -98,21 +114,6 @@ export default function SignInPage() {
     return 'text-gray-300'
   }
 
-  // Show loading state while checking auth
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  // Don't show the form if user is already logged in
-  if (user) {
-    return null
-  }
-
-  // Show the sign in form
   return (
     <div className="relative min-h-[calc(100vh-4rem)]">
       {/* Grid Background */}
@@ -172,6 +173,7 @@ export default function SignInPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         className="pl-10 h-12 text-base"
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -187,6 +189,7 @@ export default function SignInPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         className="pl-10 h-12 text-base"
+                        disabled={isLoading}
                       />
                       <Button
                         type="button"
@@ -194,6 +197,7 @@ export default function SignInPage() {
                         size="sm"
                         className="absolute right-2 top-2 h-9 w-9"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
                       >
                         {showPassword ? (
                           <EyeOff className="h-5 w-5" />
@@ -214,10 +218,14 @@ export default function SignInPage() {
                   )}
 
                   <Button disabled={isLoading} className="w-full h-12 text-base">
-                    {isLoading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
                     )}
-                    Sign In
                   </Button>
                 </div>
               </form>

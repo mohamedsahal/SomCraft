@@ -36,7 +36,7 @@ export function Hero() {
   const [codeText, setCodeText] = useState("")
   const [taglineText, setTaglineText] = useState("")
   const [showResult, setShowResult] = useState(false)
-  const fullCodeText = '<div className="flex items-center"><MessageCircleCode className="h-6 w-6 mr-2 hover:scale-110 transition-transform" />SomaliCraft</div>'
+  const fullCodeText = '<div className="flex items-center"><MessageCircleCode className="h-6 w-6 mr-2 hover:scale-110 transition-transform" />SomCraft</div>'
   const fullTaglineText = "// Crafting the Future with Somali Innovation"
   
   useEffect(() => {
@@ -115,7 +115,7 @@ export function Hero() {
                                 className="h-6 w-6 mr-2 text-primary hover:scale-110 transition-transform" 
                               />
                               <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/90 to-primary/70">
-                                SomaliCraft
+                                SomCraft
                               </span>
                             </div>
                           </div>

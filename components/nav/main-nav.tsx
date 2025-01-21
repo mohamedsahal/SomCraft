@@ -2,173 +2,139 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { MessageCircleCode, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { useSupabase } from "@/app/providers/supabase-provider"
+import { Menu, X } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function MainNav() {
+  const pathname = usePathname()
+  const { user } = useSupabase()
   const [isOpen, setIsOpen] = useState(false)
 
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background">
-      <nav className="container flex h-16 items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <MessageCircleCode className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-            SomaliCraft
-          </span>
-        </Link>
+  const routes = [
+    {
+      href: "/",
+      label: "Home",
+      active: pathname === "/",
+    },
+    {
+      href: "/courses",
+      label: "Courses",
+      active: pathname === "/courses",
+    },
+    {
+      href: "/about",
+      label: "About",
+      active: pathname === "/about",
+    },
+    {
+      href: "/contact",
+      label: "Contact",
+      active: pathname === "/contact",
+    },
+  ]
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6">
-          <Link 
-            href="/" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Home
-          </Link>
-          <Link 
-            href="/courses" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Courses
-          </Link>
-          <Link 
-            href="/blog" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Blog
-          </Link>
-          <Link 
-            href="/about" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            About
-          </Link>
-          <Link 
-            href="/contact" 
-            className="text-sm font-medium transition-colors hover:text-primary"
-          >
-            Contact
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center">
+          <Link href="/" className="flex items-center space-x-2">
+            <span className="font-bold text-xl">SomaliCraft</span>
           </Link>
         </div>
 
-        {/* Right Side - Auth & Theme */}
-        <div className="flex items-center space-x-3">
-          <ThemeToggle />
-          {/* Auth Buttons - Show Sign In on mobile */}
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="md:hidden"
-              asChild
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          {routes.map((route) => (
+            <Link
+              key={route.href}
+              href={route.href}
+              className={cn(
+                "transition-colors hover:text-foreground/80",
+                route.active ? "text-foreground" : "text-foreground/60"
+              )}
             >
-              <Link href="/sign-in">Sign In</Link>
+              {route.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Desktop Auth Buttons and Theme Toggle */}
+        <div className="hidden md:flex items-center space-x-4">
+          {user ? (
+            <Button asChild>
+              <Link href="/dashboard">Dashboard</Link>
             </Button>
-            <div className="hidden md:flex items-center space-x-2">
-              <Button variant="ghost" size="sm" asChild>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
                 <Link href="/sign-in">Sign In</Link>
               </Button>
-              <Button size="sm" asChild>
-                <Link href="/sign-up">Get Started</Link>
+              <Button asChild>
+                <Link href="/sign-up">Sign Up</Link>
               </Button>
-            </div>
-          </div>
-          
-          {/* Mobile Menu Button */}
+            </>
+          )}
+          <ThemeToggle />
+        </div>
+
+        {/* Mobile Theme Toggle and Menu Button */}
+        <div className="flex md:hidden items-center space-x-4">
+          <ThemeToggle />
           <Button 
             variant="ghost" 
             size="icon"
+            onClick={() => setIsOpen(!isOpen)}
             className="md:hidden"
-            onClick={() => setIsOpen(true)}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5"
-            >
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-            <span className="sr-only">Toggle menu</span>
+            {isOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </Button>
         </div>
-      </nav>
+      </div>
 
-      {/* Mobile Menu Overlay */}
-      <div 
-        className={cn(
-          "fixed inset-0 bg-background/80 backdrop-blur-sm z-50 md:hidden",
-          "transition-opacity duration-300",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-        onClick={() => setIsOpen(false)}
-      >
-        {/* Mobile Menu Content */}
-        <div 
-          className={cn(
-            "fixed inset-y-0 right-0 w-full max-w-sm bg-background p-6 shadow-lg",
-            "transform transition-transform duration-300 ease-in-out",
-            isOpen ? "translate-x-0" : "translate-x-full"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Menu Header - Only Close Button */}
-          <div className="flex justify-end mb-8">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="hover:bg-primary/10"
-            >
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close menu</span>
-            </Button>
-          </div>
-
-          {/* Mobile Navigation Links */}
-          <div className="flex flex-col space-y-4">
-            {[
-              { href: "/", label: "Home" },
-              { href: "/courses", label: "Courses" },
-              { href: "/blog", label: "Blog" },
-              { href: "/about", label: "About" },
-              { href: "/contact", label: "Contact" },
-            ].map((item) => (
+      {/* Mobile Navigation */}
+      {isOpen && (
+        <div className="md:hidden border-t bg-background">
+          <nav className="flex flex-col space-y-4 p-4">
+            {routes.map((route) => (
               <Link
-                key={item.href}
-                href={item.href}
-                className="text-lg font-medium px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
+                key={route.href}
+                href={route.href}
                 onClick={() => setIsOpen(false)}
+                className={cn(
+                  "transition-colors hover:text-foreground/80 text-sm",
+                  route.active ? "text-foreground" : "text-foreground/60"
+                )}
               >
-                {item.label}
+                {route.label}
               </Link>
             ))}
-          </div>
-
-          {/* Mobile Get Started Button */}
-          <div className="mt-8">
-            <Button 
-              className="w-full justify-center"
-              onClick={() => setIsOpen(false)}
-              asChild
-            >
-              <Link href="/sign-up">Get Started</Link>
-            </Button>
-          </div>
+            <div className="pt-4 border-t">
+              {user ? (
+                <Button asChild className="w-full">
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+              ) : (
+                <div className="flex flex-col space-y-2">
+                  <Button variant="ghost" asChild className="w-full">
+                    <Link href="/sign-in">Sign In</Link>
+                  </Button>
+                  <Button asChild className="w-full">
+                    <Link href="/sign-up">Sign Up</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </nav>
         </div>
-      </div>
+      )}
     </header>
   )
 } 
