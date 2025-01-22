@@ -1,7 +1,8 @@
 {
   "extends": "next/core-web-vitals",
+  "plugins": ["@typescript-eslint", "react"],
   "rules": {
-    "react/no-unescaped-entities": "off",
-    "@typescript-eslint/no-empty-interface": "off"
+    "react/no-unescaped-entities": ["error", { "forbid": [">", "}"] }],
+    "@typescript-eslint/no-empty-interface": ["error", { "allowSingleExtends": true }]
   }
 }
