@@ -5,24 +5,25 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSupabase } from "@/app/hooks/use-supabase"
-import { BookOpen, GraduationCap, User } from "lucide-react"
+import { BookOpen, LayoutDashboard, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSidebar } from "@/app/context/sidebar-context"
 
 const sidebarItems = [
   {
-    title: "My Courses",
+    title: "Overview",
     href: "/dashboard/student",
+    icon: LayoutDashboard
+  },
+  {
+    title: "My Courses",
+    href: "/dashboard/student/courses",
     icon: BookOpen
   },
   {
-    title: "My Progress",
-    href: "/dashboard/student/progress",
-    icon: GraduationCap
-  },
-  {
-    title: "Profile",
-    href: "/dashboard/student/profile",
-    icon: User
+    title: "Settings",
+    href: "/dashboard/student/settings",
+    icon: Settings
   }
 ]
 
@@ -34,31 +35,36 @@ export default function StudentLayout({
   const { user, loading } = useSupabase()
   const router = useRouter()
   const pathname = usePathname()
+  const { isSidebarOpen, setIsSidebarOpen } = useSidebar()
 
   useEffect(() => {
     if (!loading && (!user || user.role !== 'student')) {
-      router.push("/sign-in")
+      router.replace('/sign-in')
     }
   }, [user, loading, router])
 
-  if (loading) {
+  if (loading || !user) {
     return null
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 border-r bg-card">
+      <aside className={cn(
+        "fixed top-0 left-0 h-screen w-64 border-r bg-card flex flex-col z-40 transition-transform duration-200 ease-in-out",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      )}>
         <div className="flex h-16 items-center border-b px-6">
-          <h2 className="text-lg font-semibold">Student Dashboard</h2>
+          <h2 className="text-lg font-semibold hidden md:block">Student Dashboard</h2>
         </div>
-        <nav className="space-y-1 p-4">
+        <nav className="space-y-1 p-4 overflow-y-auto">
           {sidebarItems.map((item) => {
             const Icon = item.icon
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setIsSidebarOpen(false)}
                 className={cn(
                   "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium",
                   pathname === item.href
@@ -74,8 +80,16 @@ export default function StudentLayout({
         </nav>
       </aside>
 
+      {/* Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto bg-background">
+      <main className="flex-1 md:ml-64 overflow-y-auto bg-background p-8">
         {children}
       </main>
     </div>

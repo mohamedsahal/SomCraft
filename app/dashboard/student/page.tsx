@@ -55,8 +55,7 @@ export default function StudentDashboard() {
           return
         }
 
-        // Extract courses from the nested structure
-        const enrolledCourses = (data as EnrollmentWithCourse[])?.map(item => item.course) || []
+        const enrolledCourses = data?.map(item => item.course as unknown as Course) || []
         setCourses(enrolledCourses)
       } catch (error) {
         console.error("Error:", error)

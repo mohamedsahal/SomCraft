@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSupabase } from "@/app/providers/supabase-provider"
 import { Loader2 } from "lucide-react"
+import { DashboardNav } from "@/components/nav/dashboard-nav"
 
 export default function DashboardLayout({
   children,
@@ -21,7 +22,7 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -31,5 +32,12 @@ export default function DashboardLayout({
     return null
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <DashboardNav />
+      <main>
+        {children}
+      </main>
+    </>
+  )
 } 
