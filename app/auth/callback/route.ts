@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -8,38 +8,30 @@ export async function GET(request: Request) {
 
   if (code) {
     const cookieStore = cookies()
-    const supabase = createClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        auth: {
-          flowType: 'pkce',
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-          persistSession: true,
-          storage: {
-            getItem: (key: string) => {
-              const value = cookieStore.get(key)?.value
-              return value ?? null
-            },
-            setItem: (key: string, value: string) => {
-              cookieStore.set(key, value)
-            },
-            removeItem: (key: string) => {
-              cookieStore.delete(key)
-            },
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set(name, value, options)
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.delete(name)
           },
         },
       }
     )
 
-    try {
-      await supabase.auth.exchangeCodeForSession(code)
-    } catch (error) {
-      console.error('Error exchanging code for session:', error)
-      return NextResponse.redirect(`${requestUrl.origin}/auth/error`)
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
 
-  return NextResponse.redirect(requestUrl.origin)
+  // Return the user to an error page with some instructions
+  return NextResponse.redirect(new URL('/auth/auth-code-error', request.url))
 } 

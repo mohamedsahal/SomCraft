@@ -9,8 +9,8 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
     <SupabaseProvider>
       <ThemeProvider
         attribute="class"
-        defaultTheme="system"
-        enableSystem
+        defaultTheme="dark"
+        enableSystem={false}
         disableTransitionOnChange
       >
         {children}
