@@ -71,10 +71,7 @@ export function MainNav() {
           ))}
           <div className="flex items-center space-x-4">
             <Button variant="ghost" asChild>
-              <Link href="/sign-in">Sign In</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/sign-up">Sign Up</Link>
+              <Link href="#">Get Started</Link>
             </Button>
           </div>
         </nav>
@@ -120,10 +117,7 @@ export function MainNav() {
               ))}
               <div className="flex flex-col space-y-4 pt-4 border-t animate-in slide-in-from-right-4 delay-300">
                 <Button variant="ghost" asChild onClick={() => setIsOpen(false)}>
-                  <Link href="/sign-in">Sign In</Link>
-                </Button>
-                <Button asChild onClick={() => setIsOpen(false)}>
-                  <Link href="/sign-up">Sign Up</Link>
+                  <Link href="#">Get Started</Link>
                 </Button>
               </div>
             </div>

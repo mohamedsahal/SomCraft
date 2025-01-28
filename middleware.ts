@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
+  // Redirect auth-related routes to home page
+  if (request.nextUrl.pathname.startsWith('/auth')) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
   return NextResponse.next()
 }
 
