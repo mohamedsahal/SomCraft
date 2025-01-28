@@ -2,36 +2,25 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useSupabase } from "@/app/providers/supabase-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 
-const codeSnippet = `// Welcome back to SomaliCraft Academy
-import { authenticate } from '@somalicraft/auth';
+const codeSnippet = `// Welcome back to SomCraft Academy
+import { authenticate } from '@somcraft/auth';
 
-async function login() {
-  try {
-    const user = await authenticate({
-      email: 'student@somalicraft.com',
-      password: '********'
-    });
+const credentials = {
+  email: 'student@somcraft.com',
+  password: '********'
+};
 
-    console.log('Welcome back, ' + user.name);
-    await startLearningJourney(user);
-  } catch (error) {
-    console.error('Authentication failed');
-  }
-}
-
-// Ready to continue your journey?
-login();`
+await authenticate(credentials);
+// Starting your learning journey...`
 
 export default function SignInPage() {
   const router = useRouter()
-  const { user, loading, signIn } = useSupabase()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -40,24 +29,8 @@ export default function SignInPage() {
   const [currentLine, setCurrentLine] = useState(0)
   const [codeLines, setCodeLines] = useState<string[]>([])
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (!loading && user) {
-      const userData = user as any // Type assertion for user metadata
-      if (userData.is_super_admin) {
-        router.replace('/dashboard/admin')
-      } else if (userData.role === 'student') {
-        router.replace('/dashboard/student')
-      } else {
-        router.replace('/dashboard')
-      }
-    }
-  }, [user, loading, router])
-
   // Handle code animation
   useEffect(() => {
-    if (loading || user) return // Don't start animation if loading or user exists
-
     const lines = codeSnippet.split('\n')
     setCodeLines(lines)
 
@@ -72,7 +45,7 @@ export default function SignInPage() {
     }, 50)
 
     return () => clearInterval(interval)
-  }, [loading, user])
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,27 +55,14 @@ export default function SignInPage() {
     setIsLoading(true)
 
     try {
-      const { error: signInError } = await signIn({ email, password })
-      if (signInError) throw signInError
+      // TODO: Implement authentication logic here
+      // For now, just show success and redirect
+      router.push('/dashboard')
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in')
     } finally {
       setIsLoading(false)
     }
-  }
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  // Don't render if already authenticated
-  if (user) {
-    return null
   }
 
   const getCodeColor = (line: string) => {
@@ -245,4 +205,4 @@ export default function SignInPage() {
       </div>
     </div>
   )
-} 
+}

@@ -9,8 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
-import { useSupabase } from "@/hooks/use-supabase"
-import type { User } from "@supabase/supabase-js"
 import {
   Select,
   SelectContent,
@@ -18,11 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-interface ExtendedUser extends User {
-  role?: string;
-  is_super_admin?: boolean;
-}
 
 // Add country codes data
 const countryCodes = [
@@ -57,59 +50,20 @@ const countryCodes = [
   { code: '+265', country: 'Malawi' }
 ].sort((a, b) => a.country.localeCompare(b.country))
 
-const codeSnippet = `// Welcome to SomaliCraft Academy
-import { Developer } from '@somalicraft/core';
+const codeSnippet = `// Welcome to SomCraft Academy
+import { Developer } from '@somcraft/core';
 
-interface SkillSet {
-  languages: string[];
-  frameworks: string[];
-  tools: string[];
-}
+const newDeveloper = new Developer({
+  passion: 100,
+  creativity: 100,
+  persistence: 100
+});
 
-class WebDeveloper extends Developer {
-  private skills: SkillSet = {
-    languages: [],
-    frameworks: [],
-    tools: []
-  };
-
-  constructor(name: string) {
-    super(name);
-    this.initializeJourney();
-  }
-
-  async learnSkill(category: keyof SkillSet, skill: string) {
-    console.log(\`Learning \${skill}...\`);
-    await this.practice(skill);
-    this.skills[category].push(skill);
-    console.log(\`✨ Mastered \${skill}!\`);
-  }
-
-  private async initializeJourney() {
-    await this.learnSkill('languages', 'JavaScript');
-    await this.learnSkill('languages', 'TypeScript');
-    await this.learnSkill('frameworks', 'React');
-    await this.learnSkill('tools', 'Git');
-  }
-
-  async buildProject(name: string) {
-    console.log(\`🚀 Creating \${name}...\`);
-    const project = await Project.create({
-      name,
-      technologies: this.skills
-    });
-    return project;
-  }
-}
-
-// Start your coding journey
-const you = new WebDeveloper('${name}');
-you.buildProject('My First Website');`
+await newDeveloper.startJourney();
+// Your coding adventure begins...`
 
 export default function SignUpPage() {
   const router = useRouter()
-  const { signUp, user: baseUser, loading } = useSupabase()
-  const user = baseUser as ExtendedUser | null
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -118,26 +72,8 @@ export default function SignUpPage() {
   const [countryCode, setCountryCode] = useState('+252')
   const [error, setError] = useState<string | null>(null)
 
-  // Handle auth redirect
-  useEffect(() => {
-    if (!loading && user) {
-      if (user.is_super_admin) {
-        router.push('/dashboard/admin')
-      } else if (user.role === 'student' || !user.role) {
-        // All new users are created as students, so redirect undefined roles to student dashboard
-        router.push('/dashboard/student')
-      } else {
-        // This case should never happen based on our sign-up form
-        console.warn('Unexpected user role:', user.role)
-        router.push('/dashboard/student')
-      }
-    }
-  }, [user, loading, router])
-
   // Handle code animation
   useEffect(() => {
-    if (loading || user) return
-
     const lines = codeSnippet.split('\n')
     setCodeLines(lines)
 
@@ -152,7 +88,7 @@ export default function SignUpPage() {
     }, 50)
 
     return () => clearInterval(interval)
-  }, [loading, user])
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -186,35 +122,10 @@ export default function SignUpPage() {
       // Format phone number (remove any spaces or special characters)
       const formattedPhone = phoneNumber.replace(/\s+/g, '').replace(/[^\d]/g, '')
 
-      // Sign up with Supabase
-      const { data, error: signUpError } = await signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            phone_number: formattedPhone,
-            country_code: countryCode,
-            is_super_admin: false,
-            role: 'student'
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
-      })
-
-      if (signUpError) {
-        if (signUpError.message.includes('unique constraint')) {
-          throw new Error("This email is already registered. Please try signing in instead.")
-        }
-        throw signUpError
-      }
-
-      if (data?.user) {
-        toast.success("Please check your email to verify your account.")
-        router.push(`/verify?email=${encodeURIComponent(email)}`)
-      } else {
-        throw new Error("Something went wrong. Please try again.")
-      }
+      // TODO: Implement your authentication logic here
+      // For now, just show success and redirect
+      toast.success("Account created successfully!")
+      router.push('/sign-in')
     } catch (error: any) {
       console.error("Sign up error:", error)
       setError(error.message || "An unexpected error occurred during sign up")
@@ -232,21 +143,6 @@ export default function SignUpPage() {
     return 'text-gray-300'
   }
 
-  // Show loading state while checking auth
-  if (loading) {
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  // Don't show the form if user is already logged in
-  if (user) {
-    return null
-  }
-
-  // Show the sign up form
   return (
     <div className="relative min-h-[calc(100vh-4rem)]">
       {/* Grid Background */}
@@ -438,6 +334,12 @@ export default function SignUpPage() {
                     </label>
                   </div>
 
+                  {error && (
+                    <div className="text-sm text-red-500">
+                      {error}
+                    </div>
+                  )}
+
                   <Button disabled={isLoading} className="w-full h-12 text-base">
                     {isLoading && (
                       <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -462,4 +364,4 @@ export default function SignUpPage() {
       </div>
     </div>
   )
-} 
+}

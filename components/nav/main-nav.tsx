@@ -2,15 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { useSupabase } from "@/app/providers/supabase-provider"
 import { useState, useEffect } from "react"
 import { Menu, X } from "lucide-react"
+import { cn } from "../utils"
 
 export function MainNav() {
   const pathname = usePathname()
-  const { user } = useSupabase()
   const [isOpen, setIsOpen] = useState(false)
 
   // Prevent scrolling when mobile menu is open
@@ -53,7 +51,7 @@ export function MainNav() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl">SomaliCraft</span>
+            <span className="font-bold text-xl">SomCraft</span>
           </Link>
         </div>
 
@@ -72,20 +70,12 @@ export function MainNav() {
             </Link>
           ))}
           <div className="flex items-center space-x-4">
-            {user ? (
-              <Button asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" asChild>
-                  <Link href="/sign-in">Sign In</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/sign-up">Sign Up</Link>
-                </Button>
-              </>
-            )}
+            <Button variant="ghost" asChild>
+              <Link href="/sign-in">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/sign-up">Sign Up</Link>
+            </Button>
           </div>
         </nav>
 
@@ -129,20 +119,12 @@ export function MainNav() {
                 </Link>
               ))}
               <div className="flex flex-col space-y-4 pt-4 border-t animate-in slide-in-from-right-4 delay-300">
-                {user ? (
-                  <Button asChild onClick={() => setIsOpen(false)}>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </Button>
-                ) : (
-                  <>
-                    <Button variant="ghost" asChild onClick={() => setIsOpen(false)}>
-                      <Link href="/sign-in">Sign In</Link>
-                    </Button>
-                    <Button asChild onClick={() => setIsOpen(false)}>
-                      <Link href="/sign-up">Sign Up</Link>
-                    </Button>
-                  </>
-                )}
+                <Button variant="ghost" asChild onClick={() => setIsOpen(false)}>
+                  <Link href="/sign-in">Sign In</Link>
+                </Button>
+                <Button asChild onClick={() => setIsOpen(false)}>
+                  <Link href="/sign-up">Sign Up</Link>
+                </Button>
               </div>
             </div>
           </nav>
@@ -150,4 +132,4 @@ export function MainNav() {
       </div>
     </header>
   )
-} 
+}

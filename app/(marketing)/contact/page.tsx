@@ -71,15 +71,17 @@ export default function ContactPage() {
         <div className="mt-12 grid gap-8 text-center sm:grid-cols-2">
           <div>
             <h2 className="text-lg font-semibold mb-2">Email Us</h2>
-            <p className="text-muted-foreground">
-              info@somalicraft.com
-            </p>
+            <div className="text-muted-foreground">
+              <p>Email us at:</p>
+              <p className="font-medium text-foreground">info@somcraft.com</p>
+            </div>
           </div>
           <div>
             <h2 className="text-lg font-semibold mb-2">Follow Us</h2>
-            <p className="text-muted-foreground">
-              @SomaliCraft on Twitter
-            </p>
+            <div className="text-muted-foreground">
+              <p>Follow us on social media:</p>
+              <p className="font-medium text-foreground">@SomCraft on Twitter</p>
+            </div>
           </div>
         </div>
       </div>
