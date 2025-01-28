@@ -55,11 +55,11 @@ export default function SignInPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Implement authentication logic here
-      // For now, just show success and redirect
+      // Simulate a successful sign in
+      await new Promise(resolve => setTimeout(resolve, 1000))
       router.push('/dashboard')
     } catch (error: any) {
-      setError(error.message || 'An error occurred during sign in')
+      setError('An error occurred during sign in')
     } finally {
       setIsLoading(false)
     }
